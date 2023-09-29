@@ -1,0 +1,44 @@
+schemaVersion: 2.2.0
+attributes:
+  controller.devfile.io/storage-type: per-workspace
+metadata:
+  name: "Backstage Operator"
+components:
+- name: dev-tools
+  attributes:
+    pod-overrides: {"metadata": {"annotations": {"io.kubernetes.cri-o.Devices":"/dev/fuse,/dev/net/tun","io.openshift.nested-podman":""}}}
+  container: 
+    image: image-registry.openshift-image-registry.svc:5000/che-dev-images/dev-workspace-image:nested
+    memoryRequest: 1Gi
+    memoryLimit: 12Gi
+    cpuRequest: 500m
+    cpuLimit: 4000m
+    mountSources: true
+    sourceMapping: /projects
+    env:
+    - name: SHELL
+      value: "/bin/zsh"
+- name: oc-cli
+  container:
+    args:
+      - '-c'
+      - >-
+        mkdir -p /projects/bin && cp /usr/bin/oc /projects/bin/oc && cp /usr/bin/kubectl /projects/bin/kubectl
+    command:
+      - /bin/bash
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    sourceMapping: /projects
+    mountSources: true
+    memoryRequest: 128M
+    memoryLimit: 256M
+- volume:
+    size: 10Gi
+  name: projects
+commands:
+- apply:
+    component: oc-cli
+    label: Copy OpenShift CLI
+  id: cp-oc-cli
+events:
+  preStart:
+    - cp-oc-cli
